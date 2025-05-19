@@ -62,7 +62,7 @@ namespace day_19
             public void Registry(string eventName, EventDelegate eventDelegate)
             {
                 // Dictionary에 이벤트를 추가
-                if (!string.IsNullOrWhiteSpace(eventName))
+                if (!string.IsNullOrWhiteSpace(eventName) && !dict.ContainsKey(eventName))
                 {
                     dict.Add(eventName, eventDelegate);
                 }
@@ -71,13 +71,22 @@ namespace day_19
             public void Remove(string eventName)
             {
                 // Dictionary에서 이벤트를 제거
-                dict.Remove(eventName);
+                if (dict.ContainsKey(eventName))
+                {
+                    dict.Remove(eventName);
+                }
             }
 
             public void Excute(string eventName)
             {
                 // Dictionary 안에 있는 이벤트를 선택하여 Invoke()
-                dict[eventName]?.Invoke();
+                if (dict.ContainsKey(eventName))
+                {
+                    dict[eventName]?.Invoke();
+                    // del() - 델리게이트 실행 (축약형)
+                    // del.Invoke() - 델리게이트 실행
+                    // del?.Invoke() - 
+                }
             }
 
             public void Print()
