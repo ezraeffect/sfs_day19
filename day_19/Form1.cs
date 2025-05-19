@@ -29,6 +29,9 @@ namespace day_19
             eventManager.Remove("헬리콥터");
 
             eventManager.Excute("자동차");
+            eventManager.Excute("비행기");
+
+            eventManager.Print();
         }
 
         public void Car()
@@ -53,8 +56,6 @@ namespace day_19
 
         public class EventManager
         {
-            public string EventName { get; set; }
-
             // Event 이름, EventDelegate가 각각 Key, Value로 된 Dictionary 생성
             public Dictionary<string, EventDelegate> dict = new Dictionary<string, EventDelegate>();
 
@@ -77,6 +78,17 @@ namespace day_19
             {
                 // Dictionary 안에 있는 이벤트를 선택하여 Invoke()
                 dict[eventName]?.Invoke();
+            }
+
+            public void Print()
+            {
+                Console.WriteLine("==== 이벤트 목록 ====");
+
+                int i = 0;
+                foreach (string eventName in dict.Keys)
+                {
+                    Console.WriteLine($"[{i++}]{eventName}");
+                }
             }
         }
     }
