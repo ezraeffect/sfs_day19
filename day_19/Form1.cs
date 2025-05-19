@@ -61,7 +61,7 @@ namespace day_19
             public void Registry(string eventName, EventDelegate eventDelegate)
             {
                 // Dictionary에 이벤트를 추가
-                if (!string.IsNullOrEmpty(eventName) && !string.IsNullOrWhiteSpace(eventName))
+                if (!string.IsNullOrWhiteSpace(eventName))
                 {
                     dict.Add(eventName, eventDelegate);
                 }
