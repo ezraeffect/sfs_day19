@@ -8,6 +8,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Windows.Forms;
+using System.Runtime.InteropServices;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Reflection.Emit;
 
 /*
  * Thread
@@ -32,78 +35,141 @@ using System.Windows.Forms;
  * UI 스레드와의 충돌은 반드시 Invoke 처리해야 함
  * 
  */
+
+/*• Thread 및 Thread.Sleep 메소드를 사용하여 아래 레이스 경기 코드를 제작 
+ * 1. 총 5명의 참가자(차량)가 동시에 경주 시작. (차량마다 스레드 생성)
+ * 2. 각 차량은 랜덤한 시간 간격으로 전진함. (0.1초 ~ 1초)
+ * 3. 차량이 결승선에 도달하면 차량 이름 및 시간을 출력
+ * 4. 모든 차량이 결승선에 도달하면 레이스 종료 메시지 출력 및 경기 종료
+ * 5.   (Hint) DateTime, TimeSpan, List<Thread> 활용.
+ */
 namespace day_19
 {
     public partial class Form1 : Form
     {
-        // 동기화를 위한 lock 객체
-        private static readonly object lockObject = new object();
 
-        static int sharedNum = 0; 
+        private static int finishCount = 0;
+        private static int nextRank = 1;
+        private const int totalCars = 5;
+        private static int winnerNumber = 0;
+
+        // 동기화를 위한 lock 객체
+        private static object lockObj = new object();
+
+        private Car car1, car2, car3, car4, car5;
+
         public Form1()
         {
             InitializeComponent();
 
-            // 멀티 스레드
-            // 두개의 스레드 생성
-            Thread thread1 = new Thread(UpdateData1);
-            Thread thread2 = new Thread(UpdateData2);
-
-            thread1.Start();
-            thread2.Start();
-
+            // 차량 객체 생성
+            car1 = new Car(1, progressBar1, label1, this);
+            car2 = new Car(2, progressBar2, label2, this);
+            car3 = new Car(3, progressBar3, label3, this);
+            car4 = new Car(4, progressBar4, label4, this);
+            car5 = new Car(5, progressBar5, label5, this);
         }
 
-        private void UpdateData1()
+        private void button_start_Click(object sender, EventArgs e)
         {
-            lock (lockObject)
+            // 멀티 스레드
+            List<Thread> threads = new List<Thread>
             {
-                for (int i = 0; i < 10; i++)
+                new Thread(car1.Run),
+                new Thread(car2.Run),
+                new Thread(car3.Run),
+                new Thread(car4.Run),
+                new Thread(car5.Run),
+            };
+
+            foreach (Thread thread in threads)
+            {
+                thread.Start();
+            }
+
+            button_start.Enabled = false;
+            label_result.Text = "경주 시작!";
+        }
+
+        private void ShowResult()
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new MethodInvoker(() => label_result.Text = $"경주 종료! 우승자: 차량 {winnerNumber}"));
+            }
+            else
+            {
+                label_result.Text = $"경주 종료! 우승자: 차량 {winnerNumber}";
+            }
+            button_start.Enabled = true;
+        }
+
+        public class Car
+        {
+            public int Distance { get; set; }
+            public int Rank { get; set; }
+            public int Number {  get; set; }
+            public System.Windows.Forms.ProgressBar ProgressBar { get; set; }
+            
+            public System.Windows.Forms.Label Label { get; set; }
+
+            public Form1 Form { get; set; }
+
+            public Car(int carNumber ,System.Windows.Forms.ProgressBar progressBar, System.Windows.Forms.Label label, Form1 form)
+            {
+                Distance = 0;
+                Rank = 0;
+                Number = carNumber;
+                ProgressBar = progressBar;
+                Label = label;
+                Form = form;
+            }
+
+            // 경주 Method
+            // - 경주
+            // - 승부 결과 계산
+
+            public void Run()
+            {
+                Random rnd = new Random(Guid.NewGuid().GetHashCode());
+                int distance = 0;
+
+                while (distance < 100)
                 {
-                    sharedNum++;
-                    Thread.Sleep(10); // CPU 점유 방지 딜레이
+                    Thread.Sleep(rnd.Next(100, 1001)); // 0.1~1.0초
+                    distance++;
 
-                    // UI 스레드 분기 처리
+                    UpdateUI(distance); // UI 전용 메서드 호출
+                }
 
-                    if (textBox1.InvokeRequired)
-                    {
-                        // bool Type
-                        // true면 지금 코드가 UI 스레드가 아닌 다른 스레드에서 실행 중이다는 뜻
-                        // UI 업데이트는 메인 스레드에서 실행되도록 위임
-                        textBox1.Invoke(new MethodInvoker(() => { textBox1.Text += $"1: {sharedNum}\r\n"; }));
-                    }
-                    else
-                    {
-                        // 현재 스레드가 UI 스레드 인 경우
-                        textBox1.Text += $"1: {sharedNum}\r\n";
-                    }
+                lock (lockObj)
+                {
+                    Rank = nextRank++;
+                    finishCount++;
+
+                    if (finishCount == 1)
+                        winnerNumber = this.Number;
+
+                    if (finishCount == totalCars)
+                        Form.ShowResult();
                 }
             }
-        }
 
-        private void UpdateData2()
-        {
-            lock (lockObject)
+            // progressBar, Label Update Method
+            public void UpdateUI(int distance)
             {
-                for (int i = 0; i < 10; i++)
+                if (ProgressBar.InvokeRequired)
                 {
-                    sharedNum++;
-                    Thread.Sleep(10); // CPU 점유 방지 딜레이
-
-                    // UI 스레드 분기 처리
-
-                    if (textBox1.InvokeRequired)
+                    ProgressBar.Invoke(new MethodInvoker(() =>
                     {
-                        // bool Type
-                        // true면 지금 코드가 UI 스레드가 아닌 다른 스레드에서 실행 중이다는 뜻
-                        // UI 업데이트는 메인 스레드에서 실행되도록 위임
-                        textBox1.Invoke(new MethodInvoker(() => { textBox1.Text += $"2: {sharedNum}\r\n"; }));
-                    }
-                    else
-                    {
-                        // 현재 스레드가 UI 스레드 인 경우
-                        textBox1.Text += $"2: {sharedNum}\r\n";
-                    }
+                        ProgressBar.Value = Math.Min(distance, 100);
+                        Label.Text = $"{distance}/100";
+                    }));
+                }
+                else
+                {
+                    ProgressBar.Value = Math.Min(distance, 100);
+                    Label.Text = $"{distance}/100";
                 }
             }
         }
