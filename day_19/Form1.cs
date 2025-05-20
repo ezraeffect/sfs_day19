@@ -96,12 +96,14 @@ namespace day_19
             if (InvokeRequired)
             {
                 Invoke(new MethodInvoker(() => label_result.Text = $"경주 종료! 우승자: 차량 {winnerNumber}"));
+                button_start.Enabled = true;
             }
             else
             {
                 label_result.Text = $"경주 종료! 우승자: 차량 {winnerNumber}";
+                button_start.Enabled = true;
             }
-            button_start.Enabled = true;
+            
         }
 
         public class Car
